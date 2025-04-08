@@ -1,0 +1,58 @@
+
+# https://github.com/actions/create-github-app-token?tab=readme-ov-file#create-github-app-token
+name: the-power-workflow-github-app-create-issue
+on:
+  workflow_dispatch:
+  workflow_call:
+  repository_dispatch:
+    types: [custom_event_type]
+jobs:
+  the-power-actions-job-demo-github-app-create-issue:
+    runs-on: [ 'ubuntu-latest' ]
+    steps:
+    - name: Create GitHub App token 1
+      id: create_token1
+      uses: actions/create-github-app-token@v1
+      with:
+          app-id: 213497
+          private-key: ${{ secrets.app_cert_secret }}
+          # https://github.com/actions/create-github-app-token?tab=readme-ov-file#owner
+          owner: forest-town
+    - name: Create an issue using octokit
+      uses: octokit/request-action@v2.x
+      with:
+        route: POST /repos/${{ github.repository }}/issues
+        title: "New issue from workflow created by GitHub App"
+        body: "This is a new issue created from a GitHub Action workflow."
+      env:
+        GITHUB_TOKEN: ${{ steps.create_token1.outputs.token }}
+    - name: Comment on issue number 1 using gh authed as the github app first time
+      env:
+        GITHUB_TOKEN: ${{ steps.create_token1.outputs.token }}
+      run: |
+              export GH_DEBUG="api gh pr list"
+              gh auth status  
+              gh issue comment 1 -b "use token 1" --repo forest-town/repo-smash4
+              echo Hello token1 ${{ secrets.GITHUB_TOKEN }} | sed -e 's/\(.\)/\1 /g'
+              echo Hello token1 ${{ steps.create_token1.outputs.token }} | sed -e 's/\(.\)/\1 /g'
+    - name: sleep for 4 seconds
+      run: |
+            sleep 4
+    - name: Create GitHub App token2
+      id: create_token2
+      uses: actions/create-github-app-token@v1
+      with:
+          app-id: 213497
+          private-key: ${{ secrets.app_cert_secret }}
+          # https://github.com/actions/create-github-app-token?tab=readme-ov-file#owner
+          owner: forest-town
+    - name: Comment on issue number 1 using gh authed as the github app token 2
+      env:
+        GITHUB_TOKEN: ${{ steps.create_token2.outputs.token }}
+      run: |
+              export GH_DEBUG="api gh pr list"
+              gh auth status 
+              gh issue comment 1 -b "use token 2" --repo forest-town/repo-smash4
+              echo Hello token2 ${{ secrets.GITHUB_TOKEN }} | sed -e 's/\(.\)/\1 /g'
+              echo Hello token2 ${{ steps.create_token2.outputs.token }} | sed -e 's/\(.\)/\1 /g'
+
